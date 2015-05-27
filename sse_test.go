@@ -80,8 +80,8 @@ func TestNoFlush(t *testing.T) {
 
 	streamer.ServeHTTP(w, nil)
 
-	if w.status != http.StatusInternalServerError {
-		t.Fatal("expected status code 500, got:", w.status)
+	if w.status != http.StatusNotImplemented {
+		t.Fatal("wrong status code:", w.status)
 	}
 	if w.written != "Flushing not supported\n" {
 		t.Fatal("wrong error, got:", w.written)
@@ -96,8 +96,8 @@ func TestNoClose(t *testing.T) {
 
 	streamer.ServeHTTP(w, nil)
 
-	if w.status != http.StatusInternalServerError {
-		t.Fatal("expected status code 500, got:", w.status)
+	if w.status != http.StatusNotImplemented {
+		t.Fatal("wrong status code:", w.status)
 	}
 	if w.written != "Closing not supported\n" {
 		t.Fatal("wrong error, got:", w.written)
