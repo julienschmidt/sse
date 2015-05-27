@@ -2,7 +2,7 @@
 // Use of this source code is governed by MIT license, a copy can be found
 // in the LICENSE file.
 
-// Package sse provides HTTP Server-Side-Events for Go
+// Package sse provides HTTP Server-Sent-Events for Go
 package sse
 
 import (
