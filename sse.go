@@ -48,7 +48,7 @@ func (s *Streamer) run() {
 				delete(s.clients, cl)
 
 			case event := <-s.Event:
-				for cl, _ := range s.clients {
+				for cl := range s.clients {
 					cl <- event
 				}
 			}
@@ -62,6 +62,7 @@ func (s *Streamer) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
 	fl, ok := w.(http.Flusher)
 	if !ok {
 		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, "Flushing not supported")
 		return
 	}
 
@@ -69,6 +70,7 @@ func (s *Streamer) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
 	cn, ok := w.(http.CloseNotifier)
 	if !ok {
 		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, "Closing not supported")
 		return
 	}
 	close := cn.CloseNotify()
