@@ -61,16 +61,14 @@ func (s *Streamer) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
 	// We need to be able to flush for SSE
 	fl, ok := w.(http.Flusher)
 	if !ok {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, "Flushing not supported")
+		http.Error(w, "Flushing not supported", http.StatusInternalServerError)
 		return
 	}
 
 	// Returns a channel that blocks until the connection is closed
 	cn, ok := w.(http.CloseNotifier)
 	if !ok {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, "Closing not supported")
+		http.Error(w, "Closing not supported", http.StatusInternalServerError)
 		return
 	}
 	close := cn.CloseNotify()
