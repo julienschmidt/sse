@@ -64,12 +64,12 @@ func NewMockResponseWriteFlusher() mockResponseWriteFlusher {
 }
 
 func TestNoFlush(t *testing.T) {
-	Run()
-	time.Sleep(500 * time.Millisecond)
-
+	streamer := New()
 	w := NewMockResponseWriter()
 
-	Handle(w, nil)
+	time.Sleep(500 * time.Millisecond)
+
+	streamer.ServeHTTP(w, nil)
 
 	if w.status != 500 {
 		t.Fatal("expected status code 500, got:", w.status)
@@ -77,18 +77,16 @@ func TestNoFlush(t *testing.T) {
 }
 
 func TestClientConnection(t *testing.T) {
-	Run()
-
-	time.Sleep(500 * time.Millisecond)
-
+	streamer := New()
 	w := NewMockResponseWriteFlusher()
 
+	time.Sleep(500 * time.Millisecond)
 	go func() {
 		time.Sleep(500 * time.Millisecond)
 		w.Close()
 	}()
 
-	Handle(w, nil)
+	streamer.ServeHTTP(w, nil)
 
 	if w.status != 200 {
 		t.Fatal("wrong status code:", w.status)
