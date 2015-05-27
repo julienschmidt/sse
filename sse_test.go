@@ -83,7 +83,7 @@ func TestNoFlush(t *testing.T) {
 	if w.status != http.StatusInternalServerError {
 		t.Fatal("expected status code 500, got:", w.status)
 	}
-	if w.written != "Flushing not supported" {
+	if w.written != "Flushing not supported\n" {
 		t.Fatal("wrong error, got:", w.written)
 	}
 }
@@ -99,7 +99,7 @@ func TestNoClose(t *testing.T) {
 	if w.status != http.StatusInternalServerError {
 		t.Fatal("expected status code 500, got:", w.status)
 	}
-	if w.written != "Closing not supported" {
+	if w.written != "Closing not supported\n" {
 		t.Fatal("wrong error, got:", w.written)
 	}
 }
