@@ -1,10 +1,11 @@
 // Copyright 2015 Julien Schmidt. All rights reserved.
-// Use of this source code is governed by MIT license, a copy can be found
-// in the LICENSE file.
+// Use of this source code is governed by MIT license,
+// a copy can be found in the LICENSE file.
 
 package sse
 
 import (
+	"math"
 	"net/http"
 	"testing"
 	"time"
@@ -136,10 +137,35 @@ func TestSendEvent(t *testing.T) {
 	streamer := New()
 	w := NewMockResponseWriteFlushCloser()
 
+	var expected string
+
 	time.Sleep(500 * time.Millisecond)
 	go func() {
 		time.Sleep(500 * time.Millisecond)
-		streamer.Event <- "Test"
+
+		streamer.SendString("", "", "")
+		expected += "data\n\n"
+
+		streamer.SendString("", "", "Test")
+		expected += "data:Test\n\n"
+
+		streamer.SendString("", "msg", "Hi!")
+		expected += "event:msg\ndata:Hi!\n\n"
+
+		streamer.SendBytes("", "empty", nil)
+		expected += "event:empty\ndata\n\n"
+
+		streamer.SendBytes("", "error", []byte("gnah"))
+		expected += "event:error\ndata:gnah\n\n"
+
+		streamer.SendInt("", "number", 7)
+		expected += "event:number\ndata:7\n\n"
+
+		streamer.SendJSON("", "json", nil)
+		expected += "event:json\ndata:null\n\n"
+
+		streamer.SendJSON("", "json", map[string]string{"test": "successful"})
+		expected += "event:json\ndata:{\"test\":\"successful\"}\n\n"
 
 		time.Sleep(500 * time.Millisecond)
 		w.Close()
@@ -151,7 +177,40 @@ func TestSendEvent(t *testing.T) {
 		t.Fatal("wrong status code:", w.status)
 	}
 
-	if w.written != "data: Test\n\n" {
-		t.Fatal("wrong body, got:", w.written)
+	if w.written != expected {
+		t.Fatal("wrong body, got:\n", w.written, "\nexpected:\n", expected)
+	}
+}
+
+func TestJSONErr(t *testing.T) {
+	streamer := New()
+	w := NewMockResponseWriteFlushCloser()
+
+	var expected string
+	var err error
+
+	time.Sleep(500 * time.Millisecond)
+	go func() {
+		time.Sleep(500 * time.Millisecond)
+
+		// Inf can not be marshalled
+		err = streamer.SendJSON("", "json", math.Inf(0))
+
+		time.Sleep(500 * time.Millisecond)
+		w.Close()
+	}()
+
+	streamer.ServeHTTP(w, nil)
+
+	if err == nil {
+		t.Fatal("expected an error!")
+	}
+
+	if w.status != http.StatusOK {
+		t.Fatal("wrong status code:", w.status)
+	}
+
+	if w.written != expected {
+		t.Fatal("wrong body, got:\n", w.written, "\nexpected:\n", expected)
 	}
 }
