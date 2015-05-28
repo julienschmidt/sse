@@ -134,6 +134,44 @@ func TestClientConnection(t *testing.T) {
 	}
 }
 
+func TestHeader(t *testing.T) {
+	streamer := New()
+	w := NewMockResponseWriteFlushCloser()
+
+	time.Sleep(500 * time.Millisecond)
+	go func() {
+		time.Sleep(500 * time.Millisecond)
+		w.Close()
+	}()
+
+	streamer.ServeHTTP(w, nil)
+
+	if w.status != http.StatusOK {
+		t.Fatal("wrong status code:", w.status)
+	}
+
+	var expected = []struct {
+		header string
+		value  string
+	}{
+		{"Cache-Control", "no-cache"},
+		{"Connection", "keep-alive"},
+		{"Content-Type", "text/event-stream"},
+	}
+	h := w.Header()
+
+	for _, header := range expected {
+		if h.Get(header.header) != header.value {
+			t.Errorf(
+				"wrong header value for '%s', expected: '%s', got: '%s'",
+				header.header,
+				header.value,
+				h.Get(header.header),
+			)
+		}
+	}
+}
+
 func TestSendEvent(t *testing.T) {
 	streamer := New()
 	w := NewMockResponseWriteFlushCloser()
