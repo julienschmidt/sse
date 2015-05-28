@@ -7,6 +7,7 @@ package sse
 import (
 	"math"
 	"net/http"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -158,8 +159,11 @@ func TestSendEvent(t *testing.T) {
 		streamer.SendBytes("", "error", []byte("gnah"))
 		expected += "event:error\ndata:gnah\n\n"
 
-		streamer.SendInt("", "number", 7)
-		expected += "event:number\ndata:7\n\n"
+		streamer.SendInt("", "number", math.MaxInt64)
+		expected += "event:number\ndata:" + strconv.FormatInt(math.MaxInt64, 10) + "\n\n"
+
+		streamer.SendUint("", "number", math.MaxUint64)
+		expected += "event:number\ndata:" + strconv.FormatUint(math.MaxUint64, 10) + "\n\n"
 
 		streamer.SendJSON("", "json", nil)
 		expected += "event:json\ndata:null\n\n"

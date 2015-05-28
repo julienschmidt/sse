@@ -15,7 +15,7 @@ import (
 
 type client chan []byte
 
-// Streamer receives Events and broadcasts them to all connected clients.
+// Streamer receives events and broadcasts them to all connected clients.
 type Streamer struct {
 	event         chan []byte
 	clients       map[client]bool
@@ -100,7 +100,7 @@ func (s *Streamer) SendBytes(id, event string, data []byte) {
 // clients.
 // If the id or event string is empty, no id / event type is send.
 func (s *Streamer) SendInt(id, event string, data int64) {
-	const maxIntToStrLen = 20 // for MinInt, '-' + 19 digits
+	const maxIntToStrLen = 20 // '-' + 19 digits
 
 	p := format(id, event, maxIntToStrLen)
 	p = strconv.AppendInt(p[:len(p)-(maxIntToStrLen+2)], data, 10)
@@ -131,6 +131,23 @@ func (s *Streamer) SendJSON(id, event string, v interface{}) error {
 func (s *Streamer) SendString(id, event, data string) {
 	p := format(id, event, len(data))
 	copy(p[len(p)-(2+len(data)):], data) // fill in data
+	s.event <- p
+}
+
+// SendUint sends an event with the given unsigned int as the data value to all
+// connected clients.
+// If the id or event string is empty, no id / event type is send.
+func (s *Streamer) SendUint(id, event string, data uint64) {
+	const maxUintToStrLen = 20
+
+	p := format(id, event, maxUintToStrLen)
+	p = strconv.AppendUint(p[:len(p)-(maxUintToStrLen+2)], data, 10)
+
+	// Re-add \n\n at the end
+	p = p[:len(p)+2]
+	p[len(p)-2] = '\n'
+	p[len(p)-1] = '\n'
+
 	s.event <- p
 }
 
