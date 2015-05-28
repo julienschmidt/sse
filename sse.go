@@ -169,9 +169,10 @@ func (s *Streamer) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
 	close := cn.CloseNotify()
 
 	// Set headers for SSE
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("Content-Type", "text/event-stream")
+	h := w.Header()
+	h.Set("Cache-Control", "no-cache")
+	h.Set("Connection", "keep-alive")
+	h.Set("Content-Type", "text/event-stream")
 
 	// Connect new client
 	cl := make(client)
