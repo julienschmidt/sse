@@ -16,9 +16,6 @@ import (
 type client chan []byte
 
 // Streamer receives Events and broadcasts them to all connected clients.
-//
-// Events can be send via the Event channel:
-//  streamer.Event <- "Test"
 type Streamer struct {
 	event         chan []byte
 	clients       map[client]bool
