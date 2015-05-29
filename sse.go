@@ -16,6 +16,9 @@ import (
 type client chan []byte
 
 // Streamer receives events and broadcasts them to all connected clients.
+// Streamer is a http.Handler. Clients making a request to this handler receive
+// a stream of Server-Sent Events, which can be handled via JavaScript.
+// See the linked technical specification for details.
 type Streamer struct {
 	event         chan []byte
 	clients       map[client]bool
