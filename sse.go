@@ -8,9 +8,11 @@
 package sse
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 type client chan []byte
@@ -94,8 +96,34 @@ func format(id, event string, dataLen int) (p []byte) {
 // as the data value to all connected clients.
 // If the id or event string is empty, no id / event type is send.
 func (s *Streamer) SendBytes(id, event string, data []byte) {
-	p := format(id, event, len(data))
-	copy(p[len(p)-(2+len(data)):], data) // fill in data
+	dataLen := len(data)
+	lfCount := 0
+
+	// We must sent a "event:{event}\n" for each line
+	if dataLen > 0 {
+		lfCount = bytes.Count(data, []byte("\n"))
+		if lfCount > 0 {
+			dataLen += (5 * lfCount) // data:
+		}
+	}
+
+	p := format(id, event, dataLen)
+
+	start := 0
+	ins := len(p) - (2 + dataLen)
+	for i := 0; lfCount > 0; i++ {
+		if data[i] == '\n' {
+			copy(p[ins:], data[start:i])
+			ins += i - start
+			copy(p[ins:], "\ndata:")
+			ins += 6
+
+			start = i + 1
+			lfCount--
+		}
+	}
+	copy(p[ins:], data[start:])
+
 	s.event <- p
 }
 
@@ -124,7 +152,9 @@ func (s *Streamer) SendJSON(id, event string, v interface{}) error {
 	if err != nil {
 		return err
 	}
-	s.SendBytes(id, event, data)
+	p := format(id, event, len(data))
+	copy(p[len(p)-(2+len(data)):], data) // fill in data
+	s.event <- p
 	return nil
 }
 
@@ -132,8 +162,34 @@ func (s *Streamer) SendJSON(id, event string, v interface{}) error {
 // clients.
 // If the id or event string is empty, no id / event type is send.
 func (s *Streamer) SendString(id, event, data string) {
-	p := format(id, event, len(data))
-	copy(p[len(p)-(2+len(data)):], data) // fill in data
+	dataLen := len(data)
+	lfCount := 0
+
+	// We must sent a "event:{event}\n" for each line
+	if dataLen > 0 {
+		lfCount = strings.Count(data, "\n")
+		if lfCount > 0 {
+			dataLen += (5 * lfCount) // data:
+		}
+	}
+
+	p := format(id, event, dataLen)
+
+	start := 0
+	ins := len(p) - (2 + dataLen)
+	for i := 0; lfCount > 0; i++ {
+		if data[i] == '\n' {
+			copy(p[ins:], data[start:i])
+			ins += i - start
+			copy(p[ins:], "\ndata:")
+			ins += 6
+
+			start = i + 1
+			lfCount--
+		}
+	}
+	copy(p[ins:], data[start:])
+
 	s.event <- p
 }
 

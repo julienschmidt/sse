@@ -191,11 +191,17 @@ func TestSendEvent(t *testing.T) {
 		streamer.SendString("", "msg", "Hi!")
 		expected += "event:msg\ndata:Hi!\n\n"
 
+		streamer.SendString("", "string", "multi\nline\n\nyay")
+		expected += "event:string\ndata:multi\ndata:line\ndata:\ndata:yay\n\n"
+
 		streamer.SendBytes("", "empty", nil)
 		expected += "event:empty\ndata\n\n"
 
 		streamer.SendBytes("", "error", []byte("gnah"))
 		expected += "event:error\ndata:gnah\n\n"
+
+		streamer.SendBytes("", "", []byte("\nline\nbreak\n\n"))
+		expected += "data:\ndata:line\ndata:break\ndata:\ndata:\n\n"
 
 		streamer.SendInt("", "number", math.MaxInt64)
 		expected += "event:number\ndata:" + strconv.FormatInt(math.MaxInt64, 10) + "\n\n"
