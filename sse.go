@@ -99,7 +99,7 @@ func (s *Streamer) SendBytes(id, event string, data []byte) {
 	dataLen := len(data)
 	lfCount := 0
 
-	// We must sent a "event:{event}\n" for each line
+	// We must sent a "data:{data}\n" for each line
 	if dataLen > 0 {
 		lfCount = bytes.Count(data, []byte("\n"))
 		if lfCount > 0 {
@@ -109,6 +109,7 @@ func (s *Streamer) SendBytes(id, event string, data []byte) {
 
 	p := format(id, event, dataLen)
 
+	// fill in data lines
 	start := 0
 	ins := len(p) - (2 + dataLen)
 	for i := 0; lfCount > 0; i++ {
@@ -165,7 +166,7 @@ func (s *Streamer) SendString(id, event, data string) {
 	dataLen := len(data)
 	lfCount := 0
 
-	// We must sent a "event:{event}\n" for each line
+	// We must sent a "data:{data}\n" for each line
 	if dataLen > 0 {
 		lfCount = strings.Count(data, "\n")
 		if lfCount > 0 {
@@ -175,6 +176,7 @@ func (s *Streamer) SendString(id, event, data string) {
 
 	p := format(id, event, dataLen)
 
+	// fill in data lines
 	start := 0
 	ins := len(p) - (2 + dataLen)
 	for i := 0; lfCount > 0; i++ {
