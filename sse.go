@@ -26,6 +26,7 @@ type Streamer struct {
 	clients       map[client]bool
 	connecting    chan client
 	disconnecting chan client
+	bufSize       uint
 }
 
 // New returns a new initialized SSE Streamer
@@ -35,6 +36,7 @@ func New() *Streamer {
 		clients:       make(map[client]bool),
 		connecting:    make(chan client),
 		disconnecting: make(chan client),
+		bufSize:       2,
 	}
 
 	s.run()
@@ -54,11 +56,22 @@ func (s *Streamer) run() {
 
 			case event := <-s.event:
 				for cl := range s.clients {
+					// TODO: non-blocking broadcast
+					//select {
+					//case cl <- event: // Try to send event to client
+					//default:
+					//	fmt.Println("Channel full. Discarding value")
+					//}
 					cl <- event
 				}
 			}
 		}
 	}()
+}
+
+// BufSize sets the event buffer size for new clients.
+func (s *Streamer) BufSize(size uint) {
+	s.bufSize = size
 }
 
 func format(id, event string, dataLen int) (p []byte) {
@@ -236,7 +249,7 @@ func (s *Streamer) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
 	h.Set("Content-Type", "text/event-stream")
 
 	// Connect new client
-	cl := make(client)
+	cl := make(client, s.bufSize)
 	s.connecting <- cl
 
 	for {

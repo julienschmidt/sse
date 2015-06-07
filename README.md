@@ -11,7 +11,7 @@
 
 ## ToDo
 - ID handling
-- Client Channel buffering
+- Improve Client Channel buffering
 
 ## Further Readings
 - http://www.w3.org/TR/eventsource/
