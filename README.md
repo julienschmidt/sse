@@ -7,7 +7,7 @@
 - No need to implement custom protocol (WebSockets), it just uses HTTP
 - Convenient JavaScript API, fires easy to handle Events
 - Auto-Reconnects
-- Unlike WebSockets only one-directional (server -> client)
+- Unlike WebSockets, only unidirectional (server -> client)
 
 ## ToDo
 - ID handling
