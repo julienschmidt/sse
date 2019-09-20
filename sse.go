@@ -226,7 +226,7 @@ func (s *Streamer) SendUint(id, event string, data uint64) {
 }
 
 // ServeHTTP implements http.Handler interface.
-func (s *Streamer) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
+func (s *Streamer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// We need to be able to flush for SSE
 	fl, ok := w.(http.Flusher)
 	if !ok {
@@ -235,12 +235,7 @@ func (s *Streamer) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
 	}
 
 	// Returns a channel that blocks until the connection is closed
-	cn, ok := w.(http.CloseNotifier)
-	if !ok {
-		http.Error(w, "Closing not supported", http.StatusNotImplemented)
-		return
-	}
-	close := cn.CloseNotify()
+	close := r.Context().Done()
 
 	// Set headers for SSE
 	h := w.Header()
