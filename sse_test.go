@@ -5,6 +5,7 @@
 package sse
 
 import (
+	"context"
 	"math"
 	"net/http"
 	"strconv"
@@ -53,24 +54,40 @@ func NewMockResponseWriteFlusher() mockResponseWriteFlusher {
 	return mockResponseWriteFlusher{NewMockResponseWriter()}
 }
 
+func NewMockRequest() (*http.Request, context.CancelFunc) {
+	request, err := http.NewRequest("GET", "MOCK", nil)
+	if err != nil {
+		panic(err)
+	}
+	context, cancel := context.WithCancel(context.Background())
+	return request.WithContext(context), cancel
+}
+
+func NewMockRequestNeverClose() *http.Request {
+	request, err := http.NewRequest("GET", "MOCK", nil)
+	if err != nil {
+		panic(err)
+	}
+	return request
+}
+
+func NewMockRequestWithTimeout(d time.Duration) *http.Request {
+	request, err := http.NewRequest("GET", "MOCK", nil)
+	if err != nil {
+		panic(err)
+	}
+	context, _ := context.WithTimeout(context.Background(), d)
+	return request.WithContext(context)
+}
+
 // all those good old Java times...
 type mockResponseWriteFlushCloser struct {
 	mockResponseWriteFlusher
-	closeNotify chan bool
-}
-
-func (m *mockResponseWriteFlushCloser) Close() {
-	m.closeNotify <- true
-}
-
-func (m *mockResponseWriteFlushCloser) CloseNotify() <-chan bool {
-	return m.closeNotify
 }
 
 func NewMockResponseWriteFlushCloser() *mockResponseWriteFlushCloser {
 	return &mockResponseWriteFlushCloser{
 		NewMockResponseWriteFlusher(),
-		make(chan bool, 1),
 	}
 }
 
@@ -80,7 +97,7 @@ func TestNoFlush(t *testing.T) {
 
 	time.Sleep(500 * time.Millisecond)
 
-	streamer.ServeHTTP(w, nil)
+	streamer.ServeHTTP(w, NewMockRequestWithTimeout(500*time.Millisecond))
 
 	if w.status != http.StatusNotImplemented {
 		t.Fatal("wrong status code:", w.status)
@@ -90,18 +107,18 @@ func TestNoFlush(t *testing.T) {
 	}
 }
 
-func TestNoClose(t *testing.T) {
+func TestClose(t *testing.T) {
 	streamer := New()
 	w := NewMockResponseWriteFlusher()
 
 	time.Sleep(500 * time.Millisecond)
 
-	streamer.ServeHTTP(w, nil)
+	streamer.ServeHTTP(w, NewMockRequestWithTimeout(time.Millisecond))
 
-	if w.status != http.StatusNotImplemented {
+	if w.status != http.StatusOK {
 		t.Fatal("wrong status code:", w.status)
 	}
-	if w.written != "Closing not supported\n" {
+	if w.written != "" {
 		t.Fatal("wrong error, got:", w.written)
 	}
 }
@@ -109,6 +126,7 @@ func TestNoClose(t *testing.T) {
 func TestClientConnection(t *testing.T) {
 	streamer := New()
 	w := NewMockResponseWriteFlushCloser()
+	r, cancel := NewMockRequest()
 
 	time.Sleep(500 * time.Millisecond)
 	go func() {
@@ -116,13 +134,13 @@ func TestClientConnection(t *testing.T) {
 		if len(streamer.clients) != 1 {
 			t.Fatal("expected 1 client, has:", len(streamer.clients))
 		}
-		w.Close()
+		cancel()
 	}()
 
 	if len(streamer.clients) != 0 {
 		t.Fatal("expected 0 clients, has:", len(streamer.clients))
 	}
-	streamer.ServeHTTP(w, nil)
+	streamer.ServeHTTP(w, r)
 
 	time.Sleep(500 * time.Millisecond)
 	if len(streamer.clients) != 0 {
@@ -137,14 +155,15 @@ func TestClientConnection(t *testing.T) {
 func TestHeader(t *testing.T) {
 	streamer := New()
 	w := NewMockResponseWriteFlushCloser()
+	r, cancel := NewMockRequest()
 
 	time.Sleep(500 * time.Millisecond)
 	go func() {
 		time.Sleep(500 * time.Millisecond)
-		w.Close()
+		cancel()
 	}()
 
-	streamer.ServeHTTP(w, nil)
+	streamer.ServeHTTP(w, r)
 
 	if w.status != http.StatusOK {
 		t.Fatal("wrong status code:", w.status)
@@ -175,6 +194,7 @@ func TestHeader(t *testing.T) {
 func TestSendEvent(t *testing.T) {
 	streamer := New()
 	w := NewMockResponseWriteFlushCloser()
+	r, cancel := NewMockRequest()
 
 	var expected string
 
@@ -216,10 +236,10 @@ func TestSendEvent(t *testing.T) {
 		expected += "event:json\ndata:{\"test\":\"successful\"}\n\n"
 
 		time.Sleep(500 * time.Millisecond)
-		w.Close()
+		cancel()
 	}()
 
-	streamer.ServeHTTP(w, nil)
+	streamer.ServeHTTP(w, r)
 
 	if w.status != http.StatusOK {
 		t.Fatal("wrong status code:", w.status)
@@ -233,6 +253,7 @@ func TestSendEvent(t *testing.T) {
 func TestJSONErr(t *testing.T) {
 	streamer := New()
 	w := NewMockResponseWriteFlushCloser()
+	r, cancel := NewMockRequest()
 
 	var expected string
 	var err error
@@ -245,10 +266,10 @@ func TestJSONErr(t *testing.T) {
 		err = streamer.SendJSON("", "json", math.Inf(0))
 
 		time.Sleep(500 * time.Millisecond)
-		w.Close()
+		cancel()
 	}()
 
-	streamer.ServeHTTP(w, nil)
+	streamer.ServeHTTP(w, r)
 
 	if err == nil {
 		t.Fatal("expected an error!")
