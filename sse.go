@@ -27,6 +27,8 @@ type Streamer struct {
 	connecting    chan client
 	disconnecting chan client
 	bufSize       uint
+	
+	CORS bool
 }
 
 // New returns a new initialized SSE Streamer
@@ -242,6 +244,10 @@ func (s *Streamer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.Set("Cache-Control", "no-cache")
 	h.Set("Connection", "keep-alive")
 	h.Set("Content-Type", "text/event-stream")
+	
+	if s.CORS {
+		h.Set("Access-Control-Allow-Origin", "*")
+	}
 
 	// Connect new client
 	cl := make(client, s.bufSize)
