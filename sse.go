@@ -239,6 +239,7 @@ func (s *Streamer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Set headers for SSE
 	h := w.Header()
+	h.Set("X-Accel-Buffering", "no")
 	h.Set("Cache-Control", "no-cache")
 	h.Set("Connection", "keep-alive")
 	h.Set("Content-Type", "text/event-stream")
