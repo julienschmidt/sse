@@ -27,6 +27,8 @@ type Streamer struct {
 	connecting    chan client
 	disconnecting chan client
 	bufSize       uint
+
+	ExtraHeaders http.Header
 }
 
 // New returns a new initialized SSE Streamer
@@ -37,6 +39,7 @@ func New() *Streamer {
 		connecting:    make(chan client),
 		disconnecting: make(chan client),
 		bufSize:       2,
+		ExtraHeaders:  make(http.Header),
 	}
 
 	s.run()
@@ -242,6 +245,9 @@ func (s *Streamer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.Set("Cache-Control", "no-cache")
 	h.Set("Connection", "keep-alive")
 	h.Set("Content-Type", "text/event-stream")
+	for k, v := range s.ExtraHeaders {
+		h[k] = v
+	}
 
 	// Connect new client
 	cl := make(client, s.bufSize)
