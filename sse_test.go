@@ -283,3 +283,17 @@ func TestJSONErr(t *testing.T) {
 		t.Fatal("wrong body, got:\n", w.written, "\nexpected:\n", expected)
 	}
 }
+
+func TestWithContext(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	streamer := New(WithContext(ctx))
+	w := NewMockResponseWriteFlusher()
+
+	go func() {
+		time.Sleep(500 * time.Millisecond)
+		cancel()
+	}()
+
+	streamer.ServeHTTP(w, NewMockRequestWithTimeout(5000*time.Millisecond))
+}
