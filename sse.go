@@ -9,6 +9,7 @@ package sse
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -27,20 +28,34 @@ type Streamer struct {
 	connecting    chan client
 	disconnecting chan client
 	bufSize       uint
+	ctx           context.Context
 }
 
 // New returns a new initialized SSE Streamer
-func New() *Streamer {
+func New(options ...func(*Streamer)) *Streamer {
 	s := &Streamer{
 		event:         make(chan []byte, 1),
 		clients:       make(map[client]bool),
 		connecting:    make(chan client),
 		disconnecting: make(chan client),
 		bufSize:       2,
+		ctx:           context.Background(),
+	}
+
+	for _, apply := range options {
+		apply(s)
 	}
 
 	s.run()
 	return s
+}
+
+// WithContext will use the provided context for the streamer. The streamer and
+// any active connections will immediately close and return upon context.Done().
+func WithContext(ctx context.Context) func(s *Streamer) {
+	return func(s *Streamer) {
+		s.ctx = ctx
+	}
 }
 
 // run starts a goroutine to handle client connects and broadcast events.
@@ -64,6 +79,12 @@ func (s *Streamer) run() {
 					//}
 					cl <- event
 				}
+
+			case <-s.ctx.Done():
+				close(s.event)
+				close(s.connecting)
+				close(s.disconnecting)
+				return
 			}
 		}
 	}()
@@ -258,6 +279,9 @@ func (s *Streamer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			// Write events
 			w.Write(event) // TODO: error handling
 			fl.Flush()
+
+		case <-s.ctx.Done():
+			return
 		}
 	}
 }
